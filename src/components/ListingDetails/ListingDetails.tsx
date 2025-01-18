@@ -1,19 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { MapPin, Clock, ChevronLeft, MessageCircle, Navigation, Star } from 'lucide-react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { RelatedListings } from './RelatedListings';
-import type { FoodListing } from '../../types/listing';
+import React, { useState, useEffect } from "react";
+import {
+  MapPin,
+  Clock,
+  ChevronLeft,
+  MessageCircle,
+  Navigation,
+  Star,
+} from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
+import { RelatedListings } from "./RelatedListings";
+import type { FoodListing } from "../../types/listing";
+
+const googleMapApiKey = import.meta.env.VITE_GOOGLE_MAP_API_KEY;
 
 // Mock data for a single listing
 const mockListing: FoodListing = {
   id: 1,
   title: "Fresh Artisan Bread Assortment",
-  description: "A variety of freshly baked artisan bread including sourdough, whole wheat, and rye. Perfect for 2-3 families. All bread was baked this morning and is in excellent condition.",
-  image: "https://images.unsplash.com/photo-1509440159596-0249088772ff?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80",
+  description:
+    "A variety of freshly baked artisan bread including sourdough, whole wheat, and rye. Perfect for 2-3 families. All bread was baked this morning and is in excellent condition.",
+  image:
+    "https://images.unsplash.com/photo-1509440159596-0249088772ff?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80",
   images: [
     "https://images.unsplash.com/photo-1509440159596-0249088772ff?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80",
     "https://images.unsplash.com/photo-1486887396153-fa416526c108?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80",
-    "https://images.unsplash.com/photo-1530610476181-d83430b64dcd?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80"
+    "https://images.unsplash.com/photo-1530610476181-d83430b64dcd?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80",
   ],
   quantity: "8 loaves",
   distance: "1.2 miles away",
@@ -22,15 +33,15 @@ const mockListing: FoodListing = {
   pickupLocation: {
     address: "123 Baker Street, San Francisco, CA 94110",
     latitude: 37.7749,
-    longitude: -122.4194
+    longitude: -122.4194,
   },
   donorInstructions: "Please bring your own bags. Ring doorbell upon arrival.",
   donor: {
     id: "d123",
     name: "City Bakery",
     rating: 4.8,
-    totalDonations: 156
-  }
+    totalDonations: 156,
+  },
 };
 
 export function ListingDetails() {
@@ -49,9 +60,7 @@ export function ListingDetails() {
   if (!listing) {
     return (
       <div className="min-h-screen bg-gray-50 pt-20 pb-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          Loading...
-        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">Loading...</div>
       </div>
     );
   }
@@ -59,20 +68,23 @@ export function ListingDetails() {
   const handleClaim = async () => {
     setIsClaiming(true);
     // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     // In a real app, make an API call to claim the listing
-    alert('Food claimed successfully! The donor will be notified.');
+    alert("Food claimed successfully! The donor will be notified.");
     setIsClaiming(false);
   };
 
   const handleContact = () => {
     // In a real app, open chat/messaging interface
-    alert('Opening chat with donor...');
+    alert("Opening chat with donor...");
   };
 
   const handleGetDirections = () => {
     const { latitude, longitude } = listing.pickupLocation;
-    window.open(`https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`, '_blank');
+    window.open(
+      `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`,
+      "_blank"
+    );
   };
 
   return (
@@ -104,7 +116,9 @@ export function ListingDetails() {
                     key={index}
                     onClick={() => setSelectedImageIndex(index)}
                     className={`aspect-[4/3] relative rounded-md overflow-hidden ${
-                      selectedImageIndex === index ? 'ring-2 ring-green-500' : ''
+                      selectedImageIndex === index
+                        ? "ring-2 ring-green-500"
+                        : ""
                     }`}
                   >
                     <img
@@ -121,7 +135,9 @@ export function ListingDetails() {
           {/* Right Column - Details */}
           <div className="space-y-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">{listing.title}</h1>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                {listing.title}
+              </h1>
               <p className="text-gray-600">{listing.description}</p>
             </div>
 
@@ -147,7 +163,9 @@ export function ListingDetails() {
             <div className="bg-white p-4 rounded-lg shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="font-medium text-gray-900">{listing.donor.name}</h3>
+                  <h3 className="font-medium text-gray-900">
+                    {listing.donor.name}
+                  </h3>
                   <div className="flex items-center text-gray-600">
                     <Star className="w-4 h-4 text-yellow-400 mr-1" />
                     <span>{listing.donor.rating}</span>
@@ -156,20 +174,26 @@ export function ListingDetails() {
                   </div>
                 </div>
               </div>
-              <p className="text-gray-600 text-sm">{listing.donorInstructions}</p>
+              <p className="text-gray-600 text-sm">
+                {listing.donorInstructions}
+              </p>
             </div>
 
             {/* Pickup Location */}
             <div className="bg-white p-4 rounded-lg shadow-sm">
-              <h3 className="font-medium text-gray-900 mb-2">Pickup Location</h3>
-              <p className="text-gray-600 mb-4">{listing.pickupLocation.address}</p>
+              <h3 className="font-medium text-gray-900 mb-2">
+                Pickup Location
+              </h3>
+              <p className="text-gray-600 mb-4">
+                {listing.pickupLocation.address}
+              </p>
               <div className="aspect-[16/9] bg-gray-100 rounded-lg overflow-hidden mb-4">
                 <iframe
                   title="Pickup Location Map"
                   width="100%"
                   height="100%"
                   frameBorder="0"
-                  src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyAzi8bvfT3IGMukv_78rd2dMskL86lSBHs&q=${listing.pickupLocation.latitude},${listing.pickupLocation.longitude}`}
+                  src={`https://www.google.com/maps/embed/v1/place?key=${googleMapApiKey}&q=${listing.pickupLocation.latitude},${listing.pickupLocation.longitude}`}
                   allowFullScreen
                 />
               </div>
@@ -189,7 +213,7 @@ export function ListingDetails() {
                 disabled={isClaiming}
                 className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isClaiming ? 'Claiming...' : 'Claim Now'}
+                {isClaiming ? "Claiming..." : "Claim Now"}
               </button>
               <button
                 onClick={handleContact}
@@ -203,7 +227,9 @@ export function ListingDetails() {
 
         {/* Related Listings */}
         <div className="mt-16">
-          <h2 className="text-2xl font-bold text-gray-900 mb-8">You May Also Like</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-8">
+            You May Also Like
+          </h2>
           <RelatedListings category={listing.category} excludeId={listing.id} />
         </div>
       </div>
