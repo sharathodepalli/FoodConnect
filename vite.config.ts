@@ -1,20 +1,20 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// https://vitejs.dev/config/
 export default defineConfig({
+  base: 'FoodConnect', // Replace <your-repo> with your repository name
   plugins: [react()],
   optimizeDeps: {
-    exclude: ['lucide-react'], // Exclude dependencies that you don't want pre-bundled
+    exclude: ['lucide-react'],
   },
   build: {
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom'], // Split React and React DOM into a separate chunk
+          vendor: ['react', 'react-dom'],
         },
       },
     },
-    chunkSizeWarningLimit: 500, // Adjust the chunk size warning limit if needed
+    chunkSizeWarningLimit: 500,
   },
 });
