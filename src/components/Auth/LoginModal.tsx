@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { Mail, Lock, AlertCircle, Loader } from 'lucide-react';
-import { Modal } from '../common/Modal';
-import { useAuth } from '../../hooks/useAuth';
-import { useNotifications } from '../../hooks/useNotifications';
+import React, { useState } from "react";
+import { Mail, Lock, AlertCircle, Loader } from "lucide-react";
+import { Modal } from "../common/Modal";
+import { supabase } from "../../lib/supabase";
+import { useAuth } from "../../hooks/useAuth";
+import { useNotifications } from "../../hooks/useNotifications";
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -10,14 +11,17 @@ interface LoginModalProps {
   onSignUpClick: () => void;
 }
 
-export function LoginModal({ isOpen, onClose, onSignUpClick }: LoginModalProps) {
+export function LoginModal({
+  isOpen,
+  onClose,
+  onSignUpClick,
+}: LoginModalProps) {
   const { login } = useAuth();
   const { addNotification } = useNotifications();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    rememberMe: false
+    email: "",
+    password: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -25,13 +29,13 @@ export function LoginModal({ isOpen, onClose, onSignUpClick }: LoginModalProps) 
     const newErrors: Record<string, string> = {};
 
     if (!formData.email) {
-      newErrors.email = 'Email is required';
+      newErrors.email = "Email is required";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
+      newErrors.email = "Please enter a valid email address";
     }
 
     if (!formData.password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = "Password is required";
     }
 
     setErrors(newErrors);
@@ -40,35 +44,56 @@ export function LoginModal({ isOpen, onClose, onSignUpClick }: LoginModalProps) 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     setIsLoading(true);
     try {
-      // In a real app, make an API call to authenticate
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Mock successful login
-      login({
-        id: '1',
-        name: 'John Doe',
-        role: 'donor',
-        notifications: 3,
-        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=80'
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
       });
 
-      addNotification({
-        type: 'success',
-        title: 'Welcome back!',
-        message: 'You have successfully logged in.'
-      });
+      if (error) throw error;
 
-      onClose();
-    } catch (error) {
+      if (data.user?.email_confirmed_at) {
+        // Fetch user profile
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", data.user.id)
+          .single();
+
+        if (profileError) throw profileError;
+
+        login({
+          id: data.user.id,
+          name: profile?.full_name || "User",
+          role: profile?.role || "unknown",
+          avatar: profile?.avatar_url,
+          notifications: 0,
+        });
+
+        addNotification({
+          type: "success",
+          title: "Welcome back!",
+          message: "You have successfully signed in.",
+        });
+
+        onClose();
+      } else {
+        addNotification({
+          type: "error",
+          title: "Email not confirmed",
+          message:
+            "Please check your inbox and confirm your email before signing in.",
+        });
+      }
+    } catch (error: any) {
       addNotification({
-        type: 'error',
-        title: 'Login failed',
-        message: 'Invalid email or password. Please try again.'
+        type: "error",
+        title: "Login failed",
+        message: error.message || "Something went wrong. Please try again.",
       });
     } finally {
       setIsLoading(false);
@@ -88,9 +113,11 @@ export function LoginModal({ isOpen, onClose, onSignUpClick }: LoginModalProps) 
             <input
               type="email"
               value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
               className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
-                errors.email ? 'border-red-500' : 'border-gray-300'
+                errors.email ? "border-red-500" : "border-gray-300"
               }`}
               placeholder="Enter your email"
             />
@@ -113,9 +140,11 @@ export function LoginModal({ isOpen, onClose, onSignUpClick }: LoginModalProps) 
             <input
               type="password"
               value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, password: e.target.value })
+              }
               className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
-                errors.password ? 'border-red-500' : 'border-gray-300'
+                errors.password ? "border-red-500" : "border-gray-300"
               }`}
               placeholder="Enter your password"
             />
@@ -126,25 +155,6 @@ export function LoginModal({ isOpen, onClose, onSignUpClick }: LoginModalProps) 
               {errors.password}
             </p>
           )}
-        </div>
-
-        {/* Remember Me & Forgot Password */}
-        <div className="flex items-center justify-between">
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              checked={formData.rememberMe}
-              onChange={(e) => setFormData({ ...formData, rememberMe: e.target.checked })}
-              className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-            />
-            <span className="ml-2 text-sm text-gray-600">Remember me</span>
-          </label>
-          <button
-            type="button"
-            className="text-sm text-green-600 hover:text-green-700"
-          >
-            Forgot password?
-          </button>
         </div>
 
         {/* Submit Button */}
@@ -159,14 +169,14 @@ export function LoginModal({ isOpen, onClose, onSignUpClick }: LoginModalProps) 
               Signing in...
             </>
           ) : (
-            'Sign in'
+            "Sign in"
           )}
         </button>
 
         {/* Sign Up Link */}
         <div className="text-center">
           <span className="text-sm text-gray-600">
-            Don't have an account?{' '}
+            Don't have an account?{" "}
             <button
               type="button"
               onClick={() => {

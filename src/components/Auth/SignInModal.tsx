@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { Mail, Lock, AlertCircle, Loader } from 'lucide-react';
-import { Modal } from '../common/Modal';
-import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../hooks/useAuth';
-import { useNotifications } from '../../hooks/useNotifications';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Mail, Lock, AlertCircle, Loader } from "lucide-react";
+import { Modal } from "../common/Modal";
+import { supabase } from "../../lib/supabase";
+import { useAuth } from "../../hooks/useAuth";
+import { useNotifications } from "../../hooks/useNotifications";
 
 interface SignInModalProps {
   isOpen: boolean;
@@ -11,13 +12,18 @@ interface SignInModalProps {
   onSignUpClick: () => void;
 }
 
-export function SignInModal({ isOpen, onClose, onSignUpClick }: SignInModalProps) {
+export function SignInModal({
+  isOpen,
+  onClose,
+  onSignUpClick,
+}: SignInModalProps) {
+  const navigate = useNavigate();
   const { login } = useAuth();
   const { addNotification } = useNotifications();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
+    email: "",
+    password: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -25,13 +31,13 @@ export function SignInModal({ isOpen, onClose, onSignUpClick }: SignInModalProps
     const newErrors: Record<string, string> = {};
 
     if (!formData.email) {
-      newErrors.email = 'Email is required';
+      newErrors.email = "Email is required";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
+      newErrors.email = "Please enter a valid email address";
     }
 
     if (!formData.password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = "Password is required";
     }
 
     setErrors(newErrors);
@@ -40,53 +46,66 @@ export function SignInModal({ isOpen, onClose, onSignUpClick }: SignInModalProps
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
-    setIsLoading(true);
+    setIsLoading(true); // Start the loading state
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
       });
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
-      if (data.user) {
+      if (data.user?.email_confirmed_at) {
         // Fetch user profile
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', data.user.id)
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", data.user.id)
           .single();
 
-        if (profile) {
-          login({
-            id: data.user.id,
-            name: profile.full_name || 'User',
-            role: profile.role,
-            avatar: profile.avatar_url,
-            notifications: 0
-          });
-
-          addNotification({
-            type: 'success',
-            title: 'Welcome back!',
-            message: 'You have successfully signed in.'
-          });
-
-          onClose();
+        if (profileError) {
+          throw profileError;
         }
+
+        // Update global login state
+        login({
+          id: data.user.id,
+          name: profile?.full_name || "User",
+          role: profile?.role || "unknown",
+          avatar: profile?.avatar_url,
+          notifications: 0,
+        });
+
+        // Show success notification
+        addNotification({
+          type: "success",
+          title: "Welcome back!",
+          message: "You have successfully signed in.",
+        });
+
+        // Close the modal and navigate to home screen
+        onClose();
+        navigate("/home"); // Navigate to the desired route (e.g., "/home")
+      } else {
+        addNotification({
+          type: "error",
+          title: "Email not confirmed",
+          message: "Please confirm your email before signing in.",
+        });
       }
-    } catch (error) {
-      console.error('Sign in error:', error);
+    } catch (error: any) {
       addNotification({
-        type: 'error',
-        title: 'Sign in failed',
-        message: 'Invalid email or password. Please try again.'
+        type: "error",
+        title: "Sign in failed",
+        message: error.message || "Invalid credentials. Please try again.",
       });
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); // End the loading state
     }
   };
 
@@ -103,9 +122,11 @@ export function SignInModal({ isOpen, onClose, onSignUpClick }: SignInModalProps
             <input
               type="email"
               value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
               className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
-                errors.email ? 'border-red-500' : 'border-gray-300'
+                errors.email ? "border-red-500" : "border-gray-300"
               }`}
               placeholder="Enter your email"
             />
@@ -128,9 +149,11 @@ export function SignInModal({ isOpen, onClose, onSignUpClick }: SignInModalProps
             <input
               type="password"
               value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, password: e.target.value })
+              }
               className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
-                errors.password ? 'border-red-500' : 'border-gray-300'
+                errors.password ? "border-red-500" : "border-gray-300"
               }`}
               placeholder="Enter your password"
             />
@@ -155,14 +178,14 @@ export function SignInModal({ isOpen, onClose, onSignUpClick }: SignInModalProps
               Signing in...
             </>
           ) : (
-            'Sign in'
+            "Sign in"
           )}
         </button>
 
         {/* Sign Up Link */}
         <div className="text-center">
           <span className="text-sm text-gray-600">
-            Don't have an account?{' '}
+            Don't have an account?{" "}
             <button
               type="button"
               onClick={() => {
