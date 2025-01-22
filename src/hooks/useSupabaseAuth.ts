@@ -17,59 +17,152 @@ export function useSupabaseAuth() {
   const { dispatch } = useApp();
   const { addNotification } = useNotifications();
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      console.log('Auth response:', data); // After sign in
+//   const signIn = useCallback(async (email: string, password: string) => {
+//     try {
+//       const { data, error } = await supabase.auth.signInWithPassword({
+//         email,
+//         password,
+//       });
+//       console.log('Auth response:', data); // After sign in
 
-      if (error) throw error;
-      if (!data.user) throw new Error('No user returned from sign in');
+//       if (error) throw error;
+//       if (!data.user) throw new Error('No user returned from sign in');
 
-      // Get user profile
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', data.user.id)
-        .single();
-        console.log('Profile response:', profile); // After profile fetch
-      if (profileError) throw profileError;
-      if (!profile) throw new Error('User profile not found');
+//       // Get user profile
+//       const { data: profile, error: profileError } = await supabase
+//         .from('profiles')
+//         .select('*')
+//         .eq('id', data.user.id)
+//         .single();
+//         console.log('Profile response:', profile); // After profile fetch
+//       if (profileError) throw profileError;
+//       if (!profile) throw new Error('User profile not found');
 
-      // Update auth state using dispatch
-      dispatch({
-        type: "SET_USER",
-        payload: {
-          id: data.user.id,
-          name: profile.full_name,
-          role: profile.role,
-          avatar: profile.avatar_url,
-          notifications: 0
-        }
-      });
-      console.log('Dispatch complete'); // After dispatch
-      addNotification({
-        type: 'success',
-        title: 'Welcome back!',
-        message: 'You have successfully signed in.'
-      });
+//       // Update auth state using dispatch
+//       dispatch({
+//         type: "SET_USER",
+//         payload: {
+//           id: data.user.id,
+//           name: profile.full_name,
+//           role: profile.role,
+//           avatar: profile.avatar_url,
+//           notifications: 0
+//         }
+//       });
+//       console.log('Dispatch complete'); // After dispatch
+//       addNotification({
+//         type: 'success',
+//         title: 'Welcome back!',
+//         message: 'You have successfully signed in.'
+//       });
 
-      return { success: true };
-    } catch (error) {
-      console.error('Sign in error:', error);
-      const message = error instanceof Error ? error.message : 'Invalid email or password';
+//       return { success: true };
+//     } catch (error) {
+//       console.error('Sign in error:', error);
+//       const message = error instanceof Error ? error.message : 'Invalid email or password';
       
-      addNotification({
-        type: 'error',
-        title: 'Sign in failed',
-        message
-      });
+//       addNotification({
+//         type: 'error',
+//         title: 'Sign in failed',
+//         message
+//       });
 
-      return { success: false, error: message };
+//       return { success: false, error: message };
+//     }
+// }, [dispatch, addNotification]);
+
+
+const signIn = async (email: string, password: string) => {
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email,
+      password: password,
+    })
+
+    if (error) {
+      console.error('Error signing in:', error.message)
+      return { success: false, error: error.message }
     }
-}, [dispatch, addNotification]);
+
+    // Successfully signed in
+    console.log('Signed in user:', data.user)
+    return { 
+      success: true, 
+      user: data.user,
+      session: data.session 
+    };
+  } catch (error) {
+    console.error('Sign in error:', error);
+    return { success: false, error: (error as Error).message };
+  }
+};
+
+// const signIn = useCallback(async (email: string, password: string) => {
+//   try {
+//     console.log('Starting sign in process...'); // New log
+
+//     const { data, error } = await supabase.auth.signInWithPassword({
+//       email,
+//       password,
+//     });
+
+//     console.log('Auth response:', { data, error }); // New log
+
+//     if (error) throw error;
+//     if (!data.user) throw new Error('No user returned from sign in');
+
+//     console.log('Fetching user profile...'); // New log
+
+//     // Get user profile
+//     const { data: profile, error: profileError } = await supabase
+//       .from('profiles')
+//       .select('*')
+//       .eq('id', data.user.id)
+//       .single();
+
+//     console.log('Profile response:', { profile, profileError }); // New log
+
+//     if (profileError) throw profileError;
+//     if (!profile) throw new Error('User profile not found');
+
+//     console.log('Dispatching user data...'); // New log
+
+//     // Update auth state using dispatch
+//     dispatch({
+//       type: "SET_USER",
+//       payload: {
+//         id: data.user.id,
+//         name: profile.full_name,
+//         role: profile.role,
+//         avatar: profile.avatar_url,
+//         notifications: 0
+//       }
+//     });
+
+//     console.log('Adding success notification...'); // New log
+
+//     addNotification({
+//       type: 'success',
+//       title: 'Welcome back!',
+//       message: 'You have successfully signed in.'
+//     });
+
+//     console.log('Sign in process complete'); // New log
+//     return { success: true };
+
+//   } catch (error) {
+//     console.error('Sign in error details:', error); // Enhanced error logging
+//     const message = error instanceof Error ? error.message : 'Invalid email or password';
+    
+//     addNotification({
+//       type: 'error',
+//       title: 'Sign in failed',
+//       message
+//     });
+
+//     return { success: false, error: message };
+//   }
+// }, [dispatch, addNotification]);
 
   const signUp = useCallback(async ({ email, password, fullName, role, businessName }: SignUpData) => {
     try {
