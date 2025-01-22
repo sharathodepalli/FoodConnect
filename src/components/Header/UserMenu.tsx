@@ -1,131 +1,87 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import {
-  User,
-  Settings,
-  LogOut,
-  Bell,
-  ChevronDown,
-  BarChart2,
-  HelpCircle
-} from 'lucide-react';
-import { useAuth } from '../../hooks/useAuth';
-import { useNotifications } from '../../hooks/useNotifications';
-import { NotificationsPanel } from '../common/NotificationsPanel';
-import { useSupabaseAuth } from '../../hooks/useSupabaseAuth';
+// src/components/Header/UserMenu.tsx
+import { useState } from "react";
+import { Bell, LogOut, User } from "lucide-react";
+import { useApp } from "../../context/AppContext";
+import { NotificationsPanel } from "../common/NotificationsPanel";
+import { useSupabaseAuth } from "../../hooks/useSupabaseAuth";
 
 export function UserMenu() {
-  const navigate = useNavigate();
-  const { user } = useAuth();
+  const { state, dispatch } = useApp();
   const { signOut } = useSupabaseAuth();
-  const { notifications, clearAllNotifications, removeNotification } = useNotifications();
-  const [isOpen, setIsOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  if (!user) return null;
-
-  const handleLogout = async () => {
+  const handleSignOut = async () => {
     await signOut();
-    setIsOpen(false);
-    navigate('/');
+  };
+
+  const handleRemoveNotification = (id: number) => {
+    dispatch({ type: "REMOVE_NOTIFICATION", payload: id });
+  };
+
+  const handleClearAllNotifications = () => {
+    dispatch({ type: "CLEAR_ALL_NOTIFICATIONS" });
   };
 
   return (
-    <div className="relative" ref={menuRef}>
-      <div className="flex items-center space-x-4">
-        <button
-          onClick={() => setShowNotifications(!showNotifications)}
-          className="relative p-2 text-gray-400 hover:text-gray-500"
-        >
-          <Bell className="w-6 h-6" />
-          {notifications.length > 0 && (
-            <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400 ring-2 ring-white" />
-          )}
-        </button>
+    <div className="relative">
+      {/* Notifications Button */}
+      <button
+        onClick={() => setShowNotifications(!showNotifications)}
+        className="p-2 hover:bg-gray-100 rounded-full relative"
+      >
+        <Bell className="w-5 h-5 text-gray-600" />
+        {state.notifications.length > 0 && (
+          <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+            {state.notifications.length}
+          </span>
+        )}
+      </button>
 
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center space-x-2 p-2 hover:bg-gray-100 rounded-full"
-        >
-          {user.avatar ? (
+      {/* User Menu */}
+      <div className="flex items-center space-x-3">
+        <div className="flex flex-col items-end">
+          <span className="text-sm font-medium text-gray-900">
+            {state.user?.name}
+          </span>
+          <span className="text-xs text-gray-500 capitalize">
+            {state.user?.role}
+          </span>
+        </div>
+        <div className="relative">
+          {state.user?.avatar ? (
             <img
-              src={user.avatar}
-              alt={user.name}
-              className="w-8 h-8 rounded-full object-cover"
+              src={state.user.avatar}
+              alt={state.user.name}
+              className="w-8 h-8 rounded-full"
             />
           ) : (
-            <User className="w-8 h-8 text-gray-600" />
+            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+              <User className="w-5 h-5 text-gray-500" />
+            </div>
           )}
-          <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-        </button>
+        </div>
       </div>
 
-      {/* Dropdown Menu */}
-      {isOpen && (
-        <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-100 z-50">
-          <div className="p-3 border-b border-gray-100">
-            <p className="font-medium">{user.name}</p>
-            <p className="text-sm text-gray-500 capitalize">{user.role}</p>
-          </div>
-
-          <div className="py-2">
-            <Link
-              to={`/${user.role}/dashboard`}
-              className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-              onClick={() => setIsOpen(false)}
-            >
-              <BarChart2 className="w-4 h-4 mr-3" />
-              Dashboard
-            </Link>
-            <Link
-              to="/settings"
-              className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-              onClick={() => setIsOpen(false)}
-            >
-              <Settings className="w-4 h-4 mr-3" />
-              Settings
-            </Link>
-            <Link
-              to="/help"
-              className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-              onClick={() => setIsOpen(false)}
-            >
-              <HelpCircle className="w-4 h-4 mr-3" />
-              Help
-            </Link>
-          </div>
-
-          <div className="border-t border-gray-100 py-2">
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-50"
-            >
-              <LogOut className="w-4 h-4 mr-3" />
-              Sign out
-            </button>
-          </div>
+      {/* Menu Items */}
+      <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg">
+        <div className="py-1">
+          <button
+            onClick={handleSignOut}
+            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Sign out
+          </button>
         </div>
-      )}
+      </div>
 
       {/* Notifications Panel */}
       {showNotifications && (
         <NotificationsPanel
-          notifications={notifications}
+          notifications={state.notifications}
           onClose={() => setShowNotifications(false)}
-          onClearAll={clearAllNotifications}
-          onRemove={removeNotification}
+          onRemove={handleRemoveNotification}
+          onClearAll={handleClearAllNotifications}
         />
       )}
     </div>

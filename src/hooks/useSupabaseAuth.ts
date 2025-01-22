@@ -1,6 +1,7 @@
+// src/hooks/useSupabaseAuth.ts
 import { useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-import { useAuth } from './useAuth';
+import { useApp } from '../context/AppContext';
 import { useNotifications } from './useNotifications';
 import type { UserRole } from '../types/user';
 
@@ -13,7 +14,7 @@ interface SignUpData {
 }
 
 export function useSupabaseAuth() {
-  const { login, logout } = useAuth();
+  const { dispatch } = useApp();
   const { addNotification } = useNotifications();
 
   const signIn = useCallback(async (email: string, password: string) => {
@@ -22,33 +23,33 @@ export function useSupabaseAuth() {
         email,
         password,
       });
+      console.log('Auth response:', data); // After sign in
 
       if (error) throw error;
-
-      if (!data.user) {
-        throw new Error('No user returned from sign in');
-      }
+      if (!data.user) throw new Error('No user returned from sign in');
 
       // Get user profile
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', data.user.id)
         .single();
+        console.log('Profile response:', profile); // After profile fetch
+      if (profileError) throw profileError;
+      if (!profile) throw new Error('User profile not found');
 
-      if (!profile) {
-        throw new Error('User profile not found');
-      }
-
-      // Update auth state
-      login({
-        id: data.user.id,
-        name: profile.full_name,
-        role: profile.role,
-        avatar: profile.avatar_url,
-        notifications: 0
+      // Update auth state using dispatch
+      dispatch({
+        type: "SET_USER",
+        payload: {
+          id: data.user.id,
+          name: profile.full_name,
+          role: profile.role,
+          avatar: profile.avatar_url,
+          notifications: 0
+        }
       });
-
+      console.log('Dispatch complete'); // After dispatch
       addNotification({
         type: 'success',
         title: 'Welcome back!',
@@ -56,13 +57,9 @@ export function useSupabaseAuth() {
       });
 
       return { success: true };
-
     } catch (error) {
       console.error('Sign in error:', error);
-      
-      const message = error instanceof Error 
-        ? error.message 
-        : 'Invalid email or password';
+      const message = error instanceof Error ? error.message : 'Invalid email or password';
       
       addNotification({
         type: 'error',
@@ -72,7 +69,7 @@ export function useSupabaseAuth() {
 
       return { success: false, error: message };
     }
-  }, [login, addNotification]);
+}, [dispatch, addNotification]);
 
   const signUp = useCallback(async ({ email, password, fullName, role, businessName }: SignUpData) => {
     try {
@@ -107,26 +104,15 @@ export function useSupabaseAuth() {
       if (profileError) throw profileError;
       if (!profile) throw new Error('Failed to create user profile');
 
-      // Update auth state
-      login({
-        id: authData.user.id,
-        name: profile.full_name,
-        role: profile.role,
-        avatar: profile.avatar_url,
-        notifications: 0
-      });
-
       addNotification({
         type: 'success',
         title: 'Welcome to FoodConnect!',
-        message: 'Your account has been created successfully.'
+        message: 'Please check your email to confirm your account.'
       });
 
       return { success: true };
-
     } catch (error) {
       console.error('Sign up error:', error);
-      
       let message = 'Failed to create account';
       
       if (error instanceof Error) {
@@ -145,14 +131,15 @@ export function useSupabaseAuth() {
 
       return { success: false, error: message };
     }
-  }, [login, addNotification]);
+  }, [addNotification]);
 
   const signOut = useCallback(async () => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
 
-      logout();
+      // Update auth state using dispatch
+      dispatch({ type: "SET_USER", payload: null });
       
       addNotification({
         type: 'success',
@@ -162,10 +149,7 @@ export function useSupabaseAuth() {
 
     } catch (error) {
       console.error('Sign out error:', error);
-      
-      const message = error instanceof Error 
-        ? error.message 
-        : 'Failed to sign out';
+      const message = error instanceof Error ? error.message : 'Failed to sign out';
       
       addNotification({
         type: 'error',
@@ -173,7 +157,7 @@ export function useSupabaseAuth() {
         message
       });
     }
-  }, [logout, addNotification]);
+  }, [dispatch, addNotification]);
 
   return {
     signIn,
