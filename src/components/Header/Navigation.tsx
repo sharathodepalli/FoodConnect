@@ -1,48 +1,64 @@
-import React from 'react';
-import { Menu } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
-import type { UserRole } from '../../types/user';
+// src/components/Header/Navigation.tsx
+
+import { Menu } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import type { UserRole } from "../../types/user";
 
 interface NavigationProps {
-  userRole: UserRole;
+  userRole?: UserRole;
 }
 
 export function Navigation({ userRole }: NavigationProps) {
   const location = useLocation();
-  
+
   const commonLinks = [
-    { label: 'Home', href: '/' },
-    { label: 'Explore', href: '/explore' },
-    { label: 'How It Works', href: '/how-it-works' },
-    { label: 'FoodConnect Bases', href: '/foodconnect-bases' },
-    { label: 'Volunteer', href: '/volunteer' },
-    { label: 'About', href: '/about' },
-    { label: 'Contact', href: '/contact' },
+    { label: "Home", href: "/" },
+    { label: "Explore", href: "/explore" },
+    { label: "How It Works", href: "/how-it-works" },
+    { label: "FoodConnect Bases", href: "/foodconnect-bases" },
+    { label: "Volunteer", href: "/volunteer" },
+    { label: "About", href: "/about" },
+    { label: "Contact", href: "/contact" },
   ];
 
-  const roleSpecificLinks = {
-    donor: [
-      { label: 'Dashboard', href: '/restaurant/dashboard' },
-      { label: 'Analytics', href: '/analytics' },
+  const roleSpecificLinks: Record<
+    UserRole,
+    Array<{ label: string; href: string }>
+  > = {
+    restaurant: [
+      { label: "Dashboard", href: "/restaurant/dashboard" },
+      { label: "Analytics", href: "/analytics" },
+      { label: "My Listings", href: "/restaurant/listings" },
+    ],
+    mart: [
+      { label: "Dashboard", href: "/mart/dashboard" },
+      { label: "Analytics", href: "/analytics" },
+      { label: "My Listings", href: "/mart/listings" },
     ],
     recipient: [
-      { label: 'Find Food', href: '/recipient/find' },
-      { label: 'My Orders', href: '/recipient/orders' },
-      { label: 'Food Stations', href: '/recipient/stations' },
+      { label: "Find Food", href: "/recipient/find" },
+      { label: "My Orders", href: "/recipient/orders" },
+      { label: "Food Stations", href: "/recipient/stations" },
     ],
     volunteer: [
-      { label: 'Dashboard', href: '/volunteer/dashboard' },
-      { label: 'Opportunities', href: '/volunteer/opportunities' },
-      { label: 'Leaderboard', href: '/volunteer/leaderboard' },
+      { label: "Dashboard", href: "/volunteer/dashboard" },
+      { label: "Opportunities", href: "/volunteer/opportunities" },
+      { label: "Leaderboard", href: "/volunteer/leaderboard" },
     ],
     admin: [
-      { label: 'Admin Dashboard', href: '/admin' },
-      { label: 'User Management', href: '/admin/users' },
-      { label: 'Platform Analytics', href: '/admin/analytics' },
+      { label: "Admin Dashboard", href: "/admin" },
+      { label: "User Management", href: "/admin/users" },
+      { label: "Platform Analytics", href: "/admin/analytics" },
     ],
   };
 
-  const links = [...commonLinks, ...(userRole && roleSpecificLinks[userRole] || [])];
+  // Get links based on user role
+  const links = [
+    ...commonLinks,
+    ...(userRole && roleSpecificLinks[userRole]
+      ? roleSpecificLinks[userRole]
+      : []),
+  ];
 
   return (
     <>
@@ -54,8 +70,8 @@ export function Navigation({ userRole }: NavigationProps) {
             to={link.href}
             className={`text-sm font-medium transition-colors ${
               location.pathname === link.href
-                ? 'text-green-600'
-                : 'text-gray-600 hover:text-green-600'
+                ? "text-green-600"
+                : "text-gray-600 hover:text-green-600"
             }`}
           >
             {link.label}

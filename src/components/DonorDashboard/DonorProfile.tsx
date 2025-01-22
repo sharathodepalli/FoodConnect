@@ -5,6 +5,7 @@ interface DonorProfileProps {
   user: {
     name: string;
     avatar: string;
+    email: string; // Added email
     totalDonations: number;
     rating: number;
     joinedDate: string;
@@ -27,6 +28,7 @@ export function DonorProfile({ user }: DonorProfileProps) {
         />
         <div className="ml-4">
           <h3 className="text-lg font-semibold text-gray-900">{user.name}</h3>
+          <p className="text-sm text-gray-600">{user.email}</p> {/* Display email */}
           <div className="flex items-center text-gray-600">
             <Star className="w-4 h-4 text-yellow-400 mr-1" />
             <span>{user.rating}</span>
@@ -62,6 +64,14 @@ export function DonorProfile({ user }: DonorProfileProps) {
             </div>
           </div>
         </div>
+      </div>
+      <div className="mt-4">
+        <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+          Edit Profile
+        </button>
+        <button className="ml-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+          View Donations
+        </button>
       </div>
     </div>
   );

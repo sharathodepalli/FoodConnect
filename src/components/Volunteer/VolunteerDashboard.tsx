@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Clock,
   Package,
@@ -11,61 +11,60 @@ import {
   Calendar,
   BookOpen,
   Star,
-  TrendingUp
-} from 'lucide-react';
-import { Link } from 'react-router-dom';
-
-// Mock data for volunteer metrics
-const volunteerMetrics = {
-  hoursVolunteered: 45,
-  deliveriesCompleted: 23,
-  communitiesServed: 8,
-  co2Saved: 156,
-  nextMilestone: 50
-};
-
-// Mock data for open opportunities
-const openOpportunities = [
-  {
-    id: 1,
-    title: "Deliver Meals to Downtown SF",
-    date: "2024-03-15",
-    time: "2:00 PM - 4:00 PM",
-    location: "San Francisco, CA",
-    requiredSkills: ["Driving", "Food Handling"],
-    spots: 3
-  },
-  {
-    id: 2,
-    title: "Food Bank Sorting Assistant",
-    date: "2024-03-16",
-    time: "9:00 AM - 12:00 PM",
-    location: "Oakland, CA",
-    requiredSkills: ["Organization", "Physical Labor"],
-    spots: 5
-  }
-];
-
-// Mock data for completed tasks
-const completedTasks = [
-  {
-    id: 1,
-    title: "Meal Delivery - Mission District",
-    date: "2024-03-10",
-    hours: 2,
-    feedback: "Great work! Very punctual and professional."
-  },
-  {
-    id: 2,
-    title: "Food Sorting at Community Center",
-    date: "2024-03-08",
-    hours: 3,
-    feedback: "Excellent attention to detail."
-  }
-];
+  TrendingUp,
+} from "lucide-react";
+import { Link } from "react-router-dom";
+import { useApp } from "../../context/AppContext"; // Import useApp hook
 
 export function VolunteerDashboard() {
+  const { state } = useApp(); // Access global state
   const [showNotifications, setShowNotifications] = useState(false);
+
+  const volunteerMetrics = {
+    hoursVolunteered: state.user?.volunteerMetrics?.hoursVolunteered || 0,
+    deliveriesCompleted: state.user?.volunteerMetrics?.deliveriesCompleted || 0,
+    communitiesServed: state.user?.volunteerMetrics?.communitiesServed || 0,
+    co2Saved: state.user?.volunteerMetrics?.co2Saved || 0,
+    nextMilestone: state.user?.volunteerMetrics?.nextMilestone || 50,
+  };
+
+  const openOpportunities = [
+    {
+      id: 1,
+      title: "Deliver Meals to Downtown SF",
+      date: "2024-03-15",
+      time: "2:00 PM - 4:00 PM",
+      location: "San Francisco, CA",
+      requiredSkills: ["Driving", "Food Handling"],
+      spots: 3,
+    },
+    {
+      id: 2,
+      title: "Food Bank Sorting Assistant",
+      date: "2024-03-16",
+      time: "9:00 AM - 12:00 PM",
+      location: "Oakland, CA",
+      requiredSkills: ["Organization", "Physical Labor"],
+      spots: 5,
+    },
+  ];
+
+  const completedTasks = [
+    {
+      id: 1,
+      title: "Meal Delivery - Mission District",
+      date: "2024-03-10",
+      hours: 2,
+      feedback: "Great work! Very punctual and professional.",
+    },
+    {
+      id: 2,
+      title: "Food Sorting at Community Center",
+      date: "2024-03-08",
+      hours: 3,
+      feedback: "Excellent attention to detail.",
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50 pt-20 pb-12">
@@ -74,7 +73,9 @@ export function VolunteerDashboard() {
         <div className="bg-white rounded-lg shadow-sm p-8 mb-8">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Welcome Back, Sarah!</h1>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Welcome Back, {state.user?.name}!
+              </h1>
               <p className="mt-2 text-lg text-gray-600">
                 Thank you for making a difference in your community
               </p>
@@ -96,9 +97,7 @@ export function VolunteerDashboard() {
               View Open Opportunities
               <ChevronRight className="w-5 h-5 ml-2" />
             </Link>
-            <button
-              className="inline-flex items-center px-6 py-3 border border-green-600 text-green-600 rounded-lg hover:bg-green-50 transition-colors"
-            >
+            <button className="inline-flex items-center px-6 py-3 border border-green-600 text-green-600 rounded-lg hover:bg-green-50 transition-colors">
               Log Volunteer Hours
               <Clock className="w-5 h-5 ml-2" />
             </button>
@@ -110,16 +109,27 @@ export function VolunteerDashboard() {
           <div className="bg-white rounded-lg shadow-sm p-6">
             <div className="flex items-center justify-between mb-4">
               <Clock className="w-8 h-8 text-green-600" />
-              <div className="text-sm text-gray-500">Hours Goal: {volunteerMetrics.nextMilestone}</div>
+              <div className="text-sm text-gray-500">
+                Hours Goal: {volunteerMetrics.nextMilestone}
+              </div>
             </div>
             <div className="text-3xl font-bold text-gray-900 mb-1">
               {volunteerMetrics.hoursVolunteered}
+            </div>
+            <div className="text-sm text-gray-600">
+              Your volunteer metrics are updated based on your profile.
             </div>
             <div className="text-sm text-gray-600">Hours Volunteered</div>
             <div className="mt-4 h-2 bg-gray-200 rounded-full">
               <div
                 className="h-full bg-green-600 rounded-full"
-                style={{ width: `${(volunteerMetrics.hoursVolunteered / volunteerMetrics.nextMilestone) * 100}%` }}
+                style={{
+                  width: `${
+                    (volunteerMetrics.hoursVolunteered /
+                      volunteerMetrics.nextMilestone) *
+                    100
+                  }%`,
+                }}
               />
             </div>
           </div>
@@ -162,7 +172,9 @@ export function VolunteerDashboard() {
             {/* Open Opportunities */}
             <div className="bg-white rounded-lg shadow-sm p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">Opportunities Near You</h2>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Opportunities Near You
+                </h2>
                 <Link
                   to="/volunteer/opportunities"
                   className="text-green-600 hover:text-green-700 text-sm font-medium"
@@ -179,7 +191,9 @@ export function VolunteerDashboard() {
                   >
                     <div className="flex items-start justify-between">
                       <div>
-                        <h3 className="font-medium text-gray-900">{opportunity.title}</h3>
+                        <h3 className="font-medium text-gray-900">
+                          {opportunity.title}
+                        </h3>
                         <div className="mt-2 space-y-2">
                           <div className="flex items-center text-sm text-gray-600">
                             <Calendar className="w-4 h-4 mr-2" />
@@ -212,21 +226,30 @@ export function VolunteerDashboard() {
 
             {/* Activity History */}
             <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">Your Volunteer Journey</h2>
-              
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">
+                Your Volunteer Journey
+              </h2>
+
               <div className="space-y-6">
                 {completedTasks.map((task) => (
-                  <div key={task.id} className="border-l-2 border-green-500 pl-4">
+                  <div
+                    key={task.id}
+                    className="border-l-2 border-green-500 pl-4"
+                  >
                     <div className="flex items-start justify-between">
                       <div>
-                        <h3 className="font-medium text-gray-900">{task.title}</h3>
+                        <h3 className="font-medium text-gray-900">
+                          {task.title}
+                        </h3>
                         <div className="mt-1 text-sm text-gray-600">
                           {task.date} • {task.hours} hours
                         </div>
                         {task.feedback && (
                           <div className="mt-2 flex items-start space-x-1">
                             <Star className="w-4 h-4 text-yellow-400 flex-shrink-0" />
-                            <p className="text-sm text-gray-600">{task.feedback}</p>
+                            <p className="text-sm text-gray-600">
+                              {task.feedback}
+                            </p>
                           </div>
                         )}
                       </div>
@@ -241,13 +264,17 @@ export function VolunteerDashboard() {
           <div className="space-y-8">
             {/* Training and Growth */}
             <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">Expand Your Skills</h2>
-              
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">
+                Expand Your Skills
+              </h2>
+
               <div className="space-y-4">
                 <div className="p-4 border border-gray-200 rounded-lg hover:border-green-500 transition-colors">
                   <div className="flex items-center mb-2">
                     <BookOpen className="w-5 h-5 text-green-600 mr-2" />
-                    <h3 className="font-medium text-gray-900">Food Safety Basics</h3>
+                    <h3 className="font-medium text-gray-900">
+                      Food Safety Basics
+                    </h3>
                   </div>
                   <p className="text-sm text-gray-600 mb-3">
                     Learn essential food handling and safety practices.
@@ -260,7 +287,9 @@ export function VolunteerDashboard() {
                 <div className="p-4 border border-gray-200 rounded-lg hover:border-green-500 transition-colors">
                   <div className="flex items-center mb-2">
                     <TrendingUp className="w-5 h-5 text-green-600 mr-2" />
-                    <h3 className="font-medium text-gray-900">Delivery Best Practices</h3>
+                    <h3 className="font-medium text-gray-900">
+                      Delivery Best Practices
+                    </h3>
                   </div>
                   <p className="text-sm text-gray-600 mb-3">
                     Tips for efficient and safe food delivery.
@@ -274,16 +303,22 @@ export function VolunteerDashboard() {
 
             {/* Achievements */}
             <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">Your Achievements</h2>
-              
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">
+                Your Achievements
+              </h2>
+
               <div className="space-y-4">
                 <div className="flex items-center">
                   <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
                     <Award className="w-6 h-6 text-green-600" />
                   </div>
                   <div className="ml-4">
-                    <h3 className="font-medium text-gray-900">First 10 Hours</h3>
-                    <p className="text-sm text-gray-600">Completed your first 10 hours of volunteering</p>
+                    <h3 className="font-medium text-gray-900">
+                      First 10 Hours
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Completed your first 10 hours of volunteering
+                    </p>
                   </div>
                 </div>
 
@@ -293,7 +328,9 @@ export function VolunteerDashboard() {
                   </div>
                   <div className="ml-4">
                     <h3 className="font-medium text-gray-900">Delivery Pro</h3>
-                    <p className="text-sm text-gray-600">Completed 20 successful deliveries</p>
+                    <p className="text-sm text-gray-600">
+                      Completed 20 successful deliveries
+                    </p>
                   </div>
                 </div>
               </div>
