@@ -140,7 +140,7 @@ export function ListFoodModal({ isOpen, onClose }: ListFoodModalProps) {
         } : undefined,
         notes: formData.notes,
       };
-
+      console.log("before add listing call: ",newListing);
       addListing(newListing);
       onClose();
     } catch (err) {
