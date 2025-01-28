@@ -1,6 +1,8 @@
 /// <reference types="google.maps" />
 
 import React, { useState, useEffect } from "react";
+import { useLocation } from "../../context/LocationContext"; // Import the context
+import { MapPin } from "lucide-react";
 
 // Declare the google property on the window object
 declare global {
@@ -8,12 +10,11 @@ declare global {
     google: typeof google;
   }
 }
-import { MapPin } from "lucide-react";
 
 export function LocationSelector() {
-  const [location, setLocation] = useState("");
+  const { location, setLocation } = useLocation(); // Access context
+  const [inputValue, setInputValue] = useState(""); // Local input state
   const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [currentLocation, setCurrentLocation] = useState("");
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [previousLocations, setPreviousLocations] = useState<string[]>([]);
 
@@ -59,7 +60,7 @@ export function LocationSelector() {
                 results[0]
               ) {
                 const userLocation = results[0].formatted_address;
-                setCurrentLocation(userLocation);
+                setLocation({ latitude, longitude, address: userLocation });
               } else {
                 console.error("Geocoding failed: ", status);
               }
@@ -73,11 +74,11 @@ export function LocationSelector() {
     } else {
       console.error("Geolocation is not supported by this browser.");
     }
-  }, []);
+  }, [setLocation]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const value = e.target.value;
-    setLocation(value);
+    setInputValue(value);
 
     if (!value) {
       setSuggestions([]);
@@ -106,9 +107,24 @@ export function LocationSelector() {
   };
 
   const handleSuggestionClick = (suggestion: string): void => {
-    setLocation(suggestion);
+    setInputValue(suggestion);
     setSuggestions([]);
     setDropdownVisible(false);
+
+    // Use Places API to fetch coordinates
+    const geocoder = new window.google.maps.Geocoder();
+    geocoder.geocode({ address: suggestion }, (results, status) => {
+      if (status === window.google.maps.GeocoderStatus.OK && results) {
+        const location = results[0].geometry.location;
+        setLocation({
+          latitude: location.lat(),
+          longitude: location.lng(),
+          address: suggestion,
+        }); // Update context
+      } else {
+        console.error("Failed to fetch coordinates for suggestion:", status);
+      }
+    });
 
     // Save to previously selected locations
     setPreviousLocations((prev) => {
@@ -117,20 +133,8 @@ export function LocationSelector() {
     });
   };
 
-  const handleUseCurrentLocation = (): void => {
-    if (currentLocation) {
-      handleSuggestionClick(currentLocation);
-    }
-  };
-
   const toggleDropdown = (): void => {
     setDropdownVisible((visible) => !visible);
-  };
-
-  const truncateText = (text: string, maxLength: number): string => {
-    return text.length > maxLength
-      ? text.substring(0, maxLength) + "..."
-      : text;
   };
 
   return (
@@ -140,10 +144,8 @@ export function LocationSelector() {
         <MapPin className="w-5 h-5 text-green-600 absolute left-3" />
         <input
           type="text"
-          value={location}
+          value={inputValue}
           onChange={handleInputChange}
-          // onClick={toggleDropdown}
-          // onClick={() => setDropdownVisible(true)} // Show dropdown on click
           onClick={() => {
             toggleDropdown();
             setDropdownVisible(true);
@@ -156,51 +158,15 @@ export function LocationSelector() {
       {/* Dropdown */}
       {dropdownVisible && (
         <ul className="absolute top-12 left-0 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-60 overflow-auto">
-          {/* Use Current Location */}
-          {currentLocation && (
+          {suggestions.map((suggestion, index) => (
             <li
-              onClick={handleUseCurrentLocation}
-              className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-green-600"
+              key={index}
+              onClick={() => handleSuggestionClick(suggestion)}
+              className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
             >
-              Use Current Location
+              {suggestion}
             </li>
-          )}
-
-          {/* Previously Used Locations */}
-          {previousLocations.length > 0 && (
-            <>
-              <li className="px-4 py-2 text-gray-500 font-semibold">
-                Previous Locations
-              </li>
-              {previousLocations.map((location, index) => (
-                <li
-                  key={index}
-                  onClick={() => handleSuggestionClick(location)}
-                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                >
-                  {truncateText(location, 50)}
-                </li>
-              ))}
-            </>
-          )}
-
-          {/* Suggestions */}
-          {suggestions.length > 0 && (
-            <>
-              <li className="px-4 py-2 text-gray-500 font-semibold">
-                Suggestions
-              </li>
-              {suggestions.map((suggestion, index) => (
-                <li
-                  key={index}
-                  onClick={() => handleSuggestionClick(suggestion)}
-                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                >
-                  {truncateText(suggestion, 50)}
-                </li>
-              ))}
-            </>
-          )}
+          ))}
         </ul>
       )}
     </div>

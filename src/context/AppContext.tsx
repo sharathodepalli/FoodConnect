@@ -234,43 +234,55 @@ type Action =
   | { type: "UPDATE_ANALYTICS"; payload: Partial<AppState["analytics"]> }
   | { type: "ADD_NOTIFICATION"; payload: Notification }
   | { type: "REMOVE_NOTIFICATION"; payload: number }
-  | { type: "CLEAR_ALL_NOTIFICATIONS" };
+  | { type: "CLEAR_ALL_NOTIFICATIONS" }
+  | { type: "CLEAR_USER" };
 
 interface AppContextType {
   state: AppState;
   dispatch: React.Dispatch<Action>;
 }
+const STORAGE_KEY = "app_state";
+const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const AppContext = createContext<AppContextType | null>(null);
-
-const initialState: AppState = {
-  user: null,
-  listings: {
-    active: [],
-    past: [],
-  },
-  analytics: {
-    totalDonations: 0,
-    mealsServed: 0,
-    co2Saved: 0,
-    categoryBreakdown: {},
-    recentActivity: {
-      donations: [],
-      dates: [],
+const initialState = (): AppState => {
+  const stored = sessionStorage.getItem(STORAGE_KEY);
+  if (stored) {
+    return JSON.parse(stored);
+  }
+  return {
+    user: null,
+    listings: {
+      active: [],
+      past: [],
     },
-    environmentalStats: {
-      waterSaved: 0,
-      energySaved: 0,
-      wasteDiverted: 0,
+    analytics: {
+      totalDonations: 0,
+      mealsServed: 0,
+      co2Saved: 0,
+      categoryBreakdown: {},
+      recentActivity: {
+        donations: [],
+        dates: [],
+      },
+      environmentalStats: {
+        waterSaved: 0,
+        energySaved: 0,
+        wasteDiverted: 0,
+      },
     },
-  },
-  notifications: [],
+    notifications: [],
+  };
 };
 
 function appReducer(state: AppState, action: Action): AppState {
+  let newState: AppState;
   switch (action.type) {
     case "SET_USER":
-      return { ...state, user: action.payload };
+      newState = {
+        ...state,
+        user: action.payload,
+      };
+      break;
     case "ADD_LISTING":
       return {
         ...state,
@@ -323,9 +335,21 @@ function appReducer(state: AppState, action: Action): AppState {
         ...state,
         notifications: [],
       };
+
+    case "CLEAR_USER":
+      return {
+        ...state,
+        user: null,
+        listings: {
+          active: [],
+          past: [],
+        },
+      };
     default:
       return state;
   }
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(newState));
+  return newState;
 }
 
 interface AppProviderProps {
@@ -333,7 +357,7 @@ interface AppProviderProps {
 }
 
 export function AppProvider({ children }: AppProviderProps) {
-  const [state, dispatch] = useReducer(appReducer, initialState);
+  const [state, dispatch] = useReducer(appReducer, initialState());
 
   useEffect(() => {
     const {
@@ -380,7 +404,7 @@ export function AppProvider({ children }: AppProviderProps) {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [state]);
 
   return (
     <AppContext.Provider value={{ state, dispatch }}>
@@ -389,10 +413,17 @@ export function AppProvider({ children }: AppProviderProps) {
   );
 }
 
-export function useApp(): AppContextType {
+// export function useApp(): AppContextType {
+//   const context = useContext(AppContext);
+//   if (!context) {
+//     throw new Error("useApp must be used within an AppProvider");
+//   }
+//   return context;
+// }
+export function useApp() {
   const context = useContext(AppContext);
-  if (!context) {
-    throw new Error("useApp must be used within an AppProvider");
+  if (context === undefined) {
+    throw new Error("useAppContext must be used within a AppProvider");
   }
   return context;
 }

@@ -10,7 +10,7 @@ import {
 import { Header } from "./components/Header/Header";
 import { Hero } from "./components/Hero/Hero";
 import { ExploreListings } from "./components/Listings/ExploreListings";
-import { ListingDetails } from "./components/ListingDetails/ListingDetails";
+//import { ListingDetails } from "./components/ListingDetails/ListingDetails";
 import { RestaurantDashboard } from "./components/Dashboard/RestaurantDashboard";
 import { IndividualDashboard } from "./components/Dashboard/IndividualDashboard";
 import { MartDashboard } from "./components/Dashboard/MartDashboard";
@@ -24,6 +24,7 @@ import { SignUpForm } from "./components/Auth/SignUpForm";
 import { SignInPage } from "./components/Auth/SignInPage";
 import { FoodConnectBasesPage } from "./components/FoodConnectBases/FoodConnectBasesPage";
 import { AppProvider, useApp } from "./context/AppContext";
+import { LocationProvider } from "./context/LocationContext";
 import { UserSettings } from "./components/Settings/UserSettings";
 
 function HomePage() {
@@ -82,50 +83,52 @@ function RoleDashboard() {
 function App() {
   return (
     <AppProvider>
-      <Router basename="/FoodConnect">
-        <div className="min-h-screen bg-gray-50">
-          <Header />
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/explore" element={<ExploreListings />} />
-            <Route path="/listings/:id" element={<ListingDetails />} />
-            <Route path="/signin" element={<SignInPage />} />
-            <Route path="/signup" element={<SignUpForm />} />
-            <Route path="/how-it-works" element={<HowItWorks />} />
-            <Route path="/volunteer" element={<VolunteerPage />} />
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="/contact" element={<ContactPage />} />
-            <Route
-              path="/foodconnect-bases"
-              element={<FoodConnectBasesPage />}
-            />
+      <LocationProvider>
+        <Router basename="/FoodConnect">
+          <div className="min-h-screen bg-gray-50">
+            <Header />
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/explore" element={<ExploreListings />} />
+              {/* <Route path="/listings/:id" element={<ListingDetails />} /> */}
+              <Route path="/signin" element={<SignInPage />} />
+              <Route path="/signup" element={<SignUpForm />} />
+              <Route path="/how-it-works" element={<HowItWorks />} />
+              <Route path="/volunteer" element={<VolunteerPage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/contact" element={<ContactPage />} />
+              <Route
+                path="/foodconnect-bases"
+                element={<FoodConnectBasesPage />}
+              />
 
-            {/* Role-specific routes */}
-            <Route
-              path="/:role/dashboard"
-              element={
-                <ProtectedRoute>
-                  <RoleDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/analytics" element={<AnalyticsPage />} />
+              {/* Role-specific routes */}
+              <Route
+                path="/:role/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <RoleDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/analytics" element={<AnalyticsPage />} />
 
-            {/* Protected settings route */}
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <UserSettings />
-                </ProtectedRoute>
-              }
-            />
+              {/* Protected settings route */}
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <UserSettings />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Catch all route */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </div>
-      </Router>
+              {/* Catch all route */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
+        </Router>
+      </LocationProvider>
     </AppProvider>
   );
 }

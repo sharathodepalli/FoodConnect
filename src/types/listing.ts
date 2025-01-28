@@ -7,6 +7,7 @@ export interface FoodListing {
   quantity: string;
   distance: string;
   expiresIn: string;
+  expires_at: string;
   category: string;
   pickupLocation: {
     address: string;
@@ -28,8 +29,9 @@ export interface FoodListing {
     phone: string;
   };
   notes?: string;
+  
 }
 
 export type FoodCategory = 'all' | 'bakery' | 'fruits' | 'vegetables' | 'meals' | 'dairy' | 'beverages';
-export type DistanceFilter = '1' | '5' | '10' | '20';
-export type ExpirationFilter = '2' | '4' | '8' | '24';
+export type DistanceFilter = '1' | '5' | '10' | '20' | '50'| '999';
+export type ExpirationFilter = '2' | '4' | '8' | '24'| '999';

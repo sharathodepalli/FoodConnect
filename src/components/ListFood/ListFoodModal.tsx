@@ -1,8 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { X, MapPin, Clock, Package, AlertCircle, Camera, Trash2, ChevronDown, AlertTriangle } from 'lucide-react';
-import { useListings } from '../../hooks/useListings';
-import type { FoodListing } from '../../types/listing';
-
+import React, { useState, useEffect } from "react";
+import {
+  X,
+  MapPin,
+  Clock,
+  Package,
+  AlertCircle,
+  Camera,
+  Trash2,
+  ChevronDown,
+} from "lucide-react";
+import { useListings } from "../../hooks/useListings";
+import type { FoodListing } from "../../types/listing";
+import { useApp } from "../../context/AppContext";
 interface ListFoodModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -28,123 +37,262 @@ interface FormData {
 }
 
 const allergenOptions = [
-  'Dairy', 'Eggs', 'Fish', 'Shellfish', 'Tree Nuts',
-  'Peanuts', 'Wheat', 'Soy', 'Gluten'
+  "Dairy",
+  "Eggs",
+  "Fish",
+  "Shellfish",
+  "Tree Nuts",
+  "Peanuts",
+  "Wheat",
+  "Soy",
+  "Gluten",
 ];
 
 const storageOptions = [
-  { value: 'room', label: 'No refrigeration needed' },
-  { value: 'refrigerated', label: 'Requires refrigeration' },
-  { value: 'frozen', label: 'Requires freezing' }
+  { value: "room", label: "No refrigeration needed" },
+  { value: "refrigerated", label: "Requires refrigeration" },
+  { value: "frozen", label: "Requires freezing" },
 ];
 
 const conditionOptions = [
-  { value: 'fresh', label: 'Fresh' },
-  { value: 'nearExpiry', label: 'Near expiry' },
-  { value: 'packaged', label: 'Packaged/sealed' }
+  { value: "fresh", label: "Fresh" },
+  { value: "nearExpiry", label: "Near expiry" },
+  { value: "packaged", label: "Packaged/sealed" },
 ];
 
 export function ListFoodModal({ isOpen, onClose }: ListFoodModalProps) {
+  const { state } = useApp();
   const { addListing } = useListings();
+  const [coordinates, setCoordinates] = useState<{
+    lat: number;
+    lng: number;
+  }>({
+    lat: 0,
+    lng: 0,
+  });
+
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<FormData>({
-    title: '',
-    description: '',
-    quantity: '',
-    unit: 'items',
-    category: 'bakery',
-    address: '',
-    expiresIn: 'custom',
-    expiryDate: '',
-    expiryTime: '',
+    title: "",
+    description: "",
+    quantity: "",
+    unit: "items",
+    category: "bakery",
+    address: "",
+    expiresIn: "custom",
+    expiryDate: "",
+    expiryTime: "",
     allergens: [],
-    storageType: 'room',
-    condition: 'fresh',
-    contactName: '',
-    contactPhone: '',
+    storageType: "room",
+    condition: "fresh",
+    contactName: "",
+    contactPhone: "",
     images: [],
-    notes: ''
+    notes: "",
   });
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      // Try to get user's location
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
-            // In a real app, we would use a geocoding service to get the address
-            console.log('Location obtained:', position.coords);
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            setCoordinates({ lat, lng });
+            fetchAddressFromCoordinates(lat, lng);
           },
           (error) => {
-            console.error('Geolocation error:', error);
+            console.error("Geolocation error:", error);
+            setError(
+              "Unable to fetch your location. Please enter it manually."
+            );
           }
         );
+      } else {
+        setError("Geolocation is not supported by your browser.");
       }
     }
   }, [isOpen]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // const fetchAddressFromCoordinates = async (lat: number, lng: number) => {
+  //   try {
+  //     const response = await fetch(
+  //       `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
+  //     );
+  //     const data = await response.json();
+  //     if (data && data.display_name) {
+  //       setFormData((prev) => ({ ...prev, address: data.display_name }));
+  //     } else {
+  //       console.error("No address found for given coordinates.");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching address:", error);
+  //   }
+  // };
+
+  const fetchAddressFromCoordinates = async (lat: number, lng: number) => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      if (data && data.display_name) {
+        setFormData((prev) => ({ ...prev, address: data.display_name }));
+      } else {
+        throw new Error("No address found for the given coordinates.");
+      }
+    } catch (error) {
+      console.error("Error fetching address:", error);
+      setError("Failed to fetch address. Please enter it manually.");
+    }
+  };
+
+  const validateForm = () => {
+    if (
+      !formData.title ||
+      !formData.description ||
+      !formData.quantity ||
+      !formData.address
+    ) {
+      throw new Error("Please fill in all required fields");
+    }
+
+    if (isNaN(Number(formData.quantity))) {
+      throw new Error("Quantity must be a valid number");
+    }
+
+    if (
+      formData.contactPhone &&
+      !/^\+?[0-9]{1,4}?[0-9\s.-]{7,}$/.test(formData.contactPhone)
+    ) {
+      throw new Error("Please enter a valid phone number");
+    }
+
+    if (
+      formData.expiresIn === "custom" &&
+      (!formData.expiryDate || !formData.expiryTime)
+    ) {
+      throw new Error("Please provide a valid expiration date and time.");
+    }
+
+    if (formData.expiresIn === "custom") {
+      const expiryDateTime = new Date(
+        `${formData.expiryDate}T${formData.expiryTime}`
+      );
+      if (isNaN(expiryDateTime.getTime())) {
+        throw new Error("Invalid expiration date or time format.");
+      }
+    }
+  };
+
+  const handlePreview = (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
+
+    try {
+      validateForm(); // Validate before showing preview
+      setShowPreview(true); // Show the preview modal or section
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    }
+  };
+
+  const handleSubmit = async () => {
+    setError("");
     setIsSubmitting(true);
 
     try {
-      // Validate form
-      if (!formData.title || !formData.description || !formData.quantity || !formData.address) {
-        throw new Error('Please fill in all required fields');
+      // Validate required fields
+      if (!formData.title || !formData.description || !formData.quantity) {
+        throw new Error(
+          "Title, description, and quantity are required fields."
+        );
       }
 
-      // Validate quantity is a number
-      if (isNaN(Number(formData.quantity))) {
-        throw new Error('Quantity must be a valid number');
+      if (!formData.address) {
+        throw new Error("Pickup address is required.");
       }
 
-      // Validate phone number format
-      if (formData.contactPhone && !/^\+?[\d\s-]{10,}$/.test(formData.contactPhone)) {
-        throw new Error('Please enter a valid phone number');
+      if (
+        formData.expiresIn === "custom" &&
+        (!formData.expiryDate || !formData.expiryTime)
+      ) {
+        throw new Error("Please provide a valid expiration date and time.");
       }
 
-      // Create new listing
+      // Create the new listing object
       const newListing: FoodListing = {
         id: Date.now(),
         title: formData.title,
         description: formData.description,
-        image: formData.images[0] || "https://images.unsplash.com/photo-1509440159596-0249088772ff?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80",
-        images: formData.images,
+        image:
+          formData.images[0] ||
+          "https://unsplash.com/photos/pancakes-with-strawberries-and-blueberries-on-top-yxZSAjyToP4",
+        images: formData.images.length > 0 ? formData.images : [],
         quantity: `${formData.quantity} ${formData.unit}`,
         distance: "0.0 miles away",
-        expiresIn: formData.expiresIn === 'custom' 
-          ? `Expires on ${formData.expiryDate} at ${formData.expiryTime}`
-          : `${formData.expiresIn} hours`,
+        expiresIn:
+          formData.expiresIn === "custom"
+            ? `Expires on ${formData.expiryDate} at ${formData.expiryTime}`
+            : `${formData.expiresIn} hours`,
+        expires_at:
+          formData.expiresIn === "custom"
+            ? new Date(
+                `${formData.expiryDate}T${formData.expiryTime}`
+              ).toISOString()
+            : new Date(
+                Date.now() + parseInt(formData.expiresIn) * 60 * 60 * 1000
+              ).toISOString(),
         category: formData.category,
         pickupLocation: {
           address: formData.address,
-          latitude: 37.7749,
-          longitude: -122.4194,
+          latitude: coordinates.lat,
+          longitude: coordinates.lng,
         },
-        donor: {
-          id: "d123",
-          name: "City Bakery",
-          rating: 4.8,
-          totalDonations: 156
-        },
+        donor: state.user
+          ? {
+              id: state.user.id,
+              name: state.user.name,
+              rating: state.user.rating || 0,
+              totalDonations: state.user.totalDonations || 0,
+            }
+          : {
+              id: "unknown",
+              name: "Anonymous Donor",
+              rating: 0,
+              totalDonations: 0,
+            },
         allergens: formData.allergens,
         storageType: formData.storageType,
         condition: formData.condition,
-        contactInfo: formData.contactName || formData.contactPhone ? {
-          name: formData.contactName,
-          phone: formData.contactPhone,
-        } : undefined,
-        notes: formData.notes,
+        contactInfo:
+          formData.contactName || formData.contactPhone
+            ? {
+                name: formData.contactName,
+                phone: formData.contactPhone,
+              }
+            : undefined,
+        notes: formData.notes || "No additional notes provided.",
       };
-      console.log("before add listing call: ",newListing);
-      addListing(newListing);
+
+      // Add listing to database
+      await addListing(newListing);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error("Error adding listing:", err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "An error occurred while adding the listing."
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -153,20 +301,28 @@ export function ListFoodModal({ isOpen, onClose }: ListFoodModalProps) {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      // In a real app, we would upload these to a server
-      // For now, we'll just create object URLs
-      const newImages = Array.from(files).map(file => URL.createObjectURL(file));
-      setFormData(prev => ({
+      const newImages = Array.from(files).map((file) =>
+        URL.createObjectURL(file)
+      );
+      setFormData((prev) => ({
         ...prev,
-        images: [...prev.images, ...newImages]
+        images: [...new Set([...prev.images, ...newImages])], // Ensure no duplicates
       }));
     }
   };
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    setError(""); // Clear error on input change
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const removeImage = (index: number) => {
-    setFormData(prev => ({
+    URL.revokeObjectURL(formData.images[index]);
+    setFormData((prev) => ({
       ...prev,
-      images: prev.images.filter((_, i) => i !== index)
+      images: prev.images.filter((_, i) => i !== index),
     }));
   };
 
@@ -188,21 +344,41 @@ export function ListFoodModal({ isOpen, onClose }: ListFoodModalProps) {
         {/* Progress Steps */}
         <div className="px-4 py-3 bg-gray-50 border-b">
           <div className="flex items-center justify-between max-w-md mx-auto">
-            <div className={`flex items-center ${step >= 1 ? 'text-green-600' : 'text-gray-400'}`}>
+            <div
+              className={`flex items-center ${
+                step >= 1 ? "text-green-600" : "text-gray-400"
+              }`}
+            >
               <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center font-medium">
                 1
               </div>
               <span className="ml-2 text-sm">Basic Info</span>
             </div>
-            <div className={`h-0.5 w-12 ${step >= 2 ? 'bg-green-600' : 'bg-gray-200'}`} />
-            <div className={`flex items-center ${step >= 2 ? 'text-green-600' : 'text-gray-400'}`}>
+            <div
+              className={`h-0.5 w-12 ${
+                step >= 2 ? "bg-green-600" : "bg-gray-200"
+              }`}
+            />
+            <div
+              className={`flex items-center ${
+                step >= 2 ? "text-green-600" : "text-gray-400"
+              }`}
+            >
               <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center font-medium">
                 2
               </div>
               <span className="ml-2 text-sm">Details</span>
             </div>
-            <div className={`h-0.5 w-12 ${step >= 3 ? 'bg-green-600' : 'bg-gray-200'}`} />
-            <div className={`flex items-center ${step >= 3 ? 'text-green-600' : 'text-gray-400'}`}>
+            <div
+              className={`h-0.5 w-12 ${
+                step >= 3 ? "bg-green-600" : "bg-gray-200"
+              }`}
+            />
+            <div
+              className={`flex items-center ${
+                step >= 3 ? "text-green-600" : "text-gray-400"
+              }`}
+            >
               <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center font-medium">
                 3
               </div>
@@ -211,7 +387,7 @@ export function ListFoodModal({ isOpen, onClose }: ListFoodModalProps) {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+        <form className="p-4 space-y-4">
           {error && (
             <div className="p-3 bg-red-50 text-red-700 rounded-lg flex items-center">
               <AlertCircle className="w-5 h-5 mr-2" />
@@ -219,6 +395,7 @@ export function ListFoodModal({ isOpen, onClose }: ListFoodModalProps) {
             </div>
           )}
 
+          {/* Form Steps */}
           {step === 1 && (
             <>
               <div>
@@ -227,9 +404,10 @@ export function ListFoodModal({ isOpen, onClose }: ListFoodModalProps) {
                 </label>
                 <input
                   type="text"
+                  name="title" // Add this line
                   required
                   value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  onChange={handleInputChange}
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                   placeholder="e.g., Fresh Bread Assortment"
                 />
@@ -237,13 +415,19 @@ export function ListFoodModal({ isOpen, onClose }: ListFoodModalProps) {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description* <span className="text-gray-400">({200 - formData.description.length} characters left)</span>
+                  Description* (
+                  <span className="text-gray-400">
+                    {200 - formData.description.length} characters left
+                  </span>
+                  )
                 </label>
                 <textarea
                   required
                   maxLength={200}
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                   rows={3}
                   placeholder="Describe the food items..."
@@ -257,10 +441,11 @@ export function ListFoodModal({ isOpen, onClose }: ListFoodModalProps) {
                   </label>
                   <input
                     type="number"
+                    name="quantity" // Add name attribute
                     required
                     min="1"
                     value={formData.quantity}
-                    onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                    onChange={handleInputChange}
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                     placeholder="Enter amount"
                   />
@@ -271,7 +456,9 @@ export function ListFoodModal({ isOpen, onClose }: ListFoodModalProps) {
                   </label>
                   <select
                     value={formData.unit}
-                    onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, unit: e.target.value })
+                    }
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                   >
                     <option value="items">Items</option>
@@ -288,7 +475,9 @@ export function ListFoodModal({ isOpen, onClose }: ListFoodModalProps) {
                 </label>
                 <select
                   value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, category: e.target.value })
+                  }
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 >
                   <option value="bakery">Bakery</option>
@@ -312,9 +501,10 @@ export function ListFoodModal({ isOpen, onClose }: ListFoodModalProps) {
                   <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="text"
+                    name="address" // Add name attribute
                     required
                     value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    onChange={handleInputChange}
                     className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                     placeholder="Enter pickup address"
                   />
@@ -344,8 +534,9 @@ export function ListFoodModal({ isOpen, onClose }: ListFoodModalProps) {
                 </label>
                 <div className="space-y-3">
                   <select
+                    name="expiresIn" // Add name attribute
                     value={formData.expiresIn}
-                    onChange={(e) => setFormData({ ...formData, expiresIn: e.target.value })}
+                    onChange={handleInputChange} // Replace with handleInputChange
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                   >
                     <option value="2">2 hours</option>
@@ -355,19 +546,23 @@ export function ListFoodModal({ isOpen, onClose }: ListFoodModalProps) {
                     <option value="custom">Custom date/time</option>
                   </select>
 
-                  {formData.expiresIn === 'custom' && (
+                  {formData.expiresIn === "custom" && (
                     <div className="grid grid-cols-2 gap-4">
                       <input
                         type="date"
+                        name="expiryDate"
                         value={formData.expiryDate}
-                        onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
-                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border rounded-lg"
+                        required={formData.expiresIn === "custom"}
                       />
                       <input
                         type="time"
+                        name="expiryTime"
                         value={formData.expiryTime}
-                        onChange={(e) => setFormData({ ...formData, expiryTime: e.target.value })}
-                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border rounded-lg"
+                        required={formData.expiresIn === "custom"}
                       />
                     </div>
                   )}
@@ -384,8 +579,8 @@ export function ListFoodModal({ isOpen, onClose }: ListFoodModalProps) {
                       key={allergen}
                       className={`px-3 py-1 rounded-full text-sm cursor-pointer transition-colors ${
                         formData.allergens.includes(allergen)
-                          ? 'bg-green-100 text-green-800 border-green-200'
-                          : 'bg-gray-100 text-gray-700 border-gray-200'
+                          ? "bg-green-100 text-green-800 border-green-200"
+                          : "bg-gray-100 text-gray-700 border-gray-200"
                       } border`}
                     >
                       <input
@@ -396,12 +591,14 @@ export function ListFoodModal({ isOpen, onClose }: ListFoodModalProps) {
                           if (e.target.checked) {
                             setFormData({
                               ...formData,
-                              allergens: [...formData.allergens, allergen]
+                              allergens: [...formData.allergens, allergen],
                             });
                           } else {
                             setFormData({
                               ...formData,
-                              allergens: formData.allergens.filter(a => a !== allergen)
+                              allergens: formData.allergens.filter(
+                                (a) => a !== allergen
+                              ),
                             });
                           }
                         }}
@@ -418,10 +615,12 @@ export function ListFoodModal({ isOpen, onClose }: ListFoodModalProps) {
                 </label>
                 <select
                   value={formData.storageType}
-                  onChange={(e) => setFormData({ ...formData, storageType: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, storageType: e.target.value })
+                  }
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 >
-                  {storageOptions.map(option => (
+                  {storageOptions.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
@@ -435,10 +634,12 @@ export function ListFoodModal({ isOpen, onClose }: ListFoodModalProps) {
                 </label>
                 <select
                   value={formData.condition}
-                  onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, condition: e.target.value })
+                  }
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 >
-                  {conditionOptions.map(option => (
+                  {conditionOptions.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
@@ -458,14 +659,18 @@ export function ListFoodModal({ isOpen, onClose }: ListFoodModalProps) {
                   <input
                     type="text"
                     value={formData.contactName}
-                    onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, contactName: e.target.value })
+                    }
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                     placeholder="Contact name"
                   />
                   <input
                     type="tel"
                     value={formData.contactPhone}
-                    onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, contactPhone: e.target.value })
+                    }
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                     placeholder="Phone number"
                   />
@@ -495,9 +700,14 @@ export function ListFoodModal({ isOpen, onClose }: ListFoodModalProps) {
                       </div>
                     ))}
                     {formData.images.length < 4 && (
-                      <label className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-green-500">
+                      <label
+                        className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-green-500"
+                        aria-label="Add food item photo"
+                      >
                         <Camera className="w-8 h-8 text-gray-400" />
-                        <span className="mt-2 text-sm text-gray-500">Add Photo</span>
+                        <span className="mt-2 text-sm text-gray-500">
+                          Add Photo
+                        </span>
                         <input
                           type="file"
                           accept="image/*"
@@ -520,7 +730,9 @@ export function ListFoodModal({ isOpen, onClose }: ListFoodModalProps) {
                 </label>
                 <textarea
                   value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, notes: e.target.value })
+                  }
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                   rows={3}
                   placeholder="Any special instructions or additional information..."
@@ -535,9 +747,13 @@ export function ListFoodModal({ isOpen, onClose }: ListFoodModalProps) {
                   className="flex items-center justify-between w-full text-left"
                 >
                   <span className="font-medium">Preview Listing</span>
-                  <ChevronDown className={`w-5 h-5 transform transition-transform ${showPreview ? 'rotate-180' : ''}`} />
+                  <ChevronDown
+                    className={`w-5 h-5 transform transition-transform ${
+                      showPreview ? "rotate-180" : ""
+                    }`}
+                  />
                 </button>
-                
+
                 {showPreview && (
                   <div className="mt-4 space-y-4">
                     <div className="aspect-video relative rounded-lg overflow-hidden bg-gray-200">
@@ -553,24 +769,34 @@ export function ListFoodModal({ isOpen, onClose }: ListFoodModalProps) {
                         </div>
                       )}
                     </div>
-                    
+
                     <div>
-                      <h3 className="text-xl font-semibold">{formData.title}</h3>
-                      <p className="text-gray-600 mt-2">{formData.description}</p>
-                      
+                      <h3 className="text-xl font-semibold">
+                        {formData.title}
+                      </h3>
+                      <p className="text-gray-600 mt-2">
+                        {formData.description}
+                      </p>
+
                       <div className="mt-4 grid grid-cols-2 gap-4">
                         <div>
-                          <span className="text-sm text-gray-500">Quantity</span>
-                          <p>{formData.quantity} {formData.unit}</p>
+                          <span className="text-sm text-gray-500">
+                            Quantity
+                          </span>
+                          <p>
+                            {formData.quantity} {formData.unit}
+                          </p>
                         </div>
                         <div>
-                          <span className="text-sm text-gray-500">Category</span>
+                          <span className="text-sm text-gray-500">
+                            Category
+                          </span>
                           <p className="capitalize">{formData.category}</p>
                         </div>
                         <div>
                           <span className="text-sm text-gray-500">Expires</span>
                           <p>
-                            {formData.expiresIn === 'custom'
+                            {formData.expiresIn === "custom"
                               ? `${formData.expiryDate} at ${formData.expiryTime}`
                               : `In ${formData.expiresIn} hours`}
                           </p>
@@ -583,9 +809,11 @@ export function ListFoodModal({ isOpen, onClose }: ListFoodModalProps) {
 
                       {formData.allergens.length > 0 && (
                         <div className="mt-4">
-                          <span className="text-sm text-gray-500">Contains allergens:</span>
+                          <span className="text-sm text-gray-500">
+                            Contains allergens:
+                          </span>
                           <div className="flex flex-wrap gap-2 mt-1">
-                            {formData.allergens.map(allergen => (
+                            {formData.allergens.map((allergen) => (
                               <span
                                 key={allergen}
                                 className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-sm"
@@ -609,13 +837,13 @@ export function ListFoodModal({ isOpen, onClose }: ListFoodModalProps) {
               type="button"
               onClick={() => setStep(step - 1)}
               className={`px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg ${
-                step === 1 ? 'invisible' : ''
+                step === 1 ? "invisible" : ""
               }`}
               disabled={step === 1 || isSubmitting}
             >
               Back
             </button>
-            
+
             <div className="flex space-x-4">
               <button
                 type="button"
@@ -625,7 +853,7 @@ export function ListFoodModal({ isOpen, onClose }: ListFoodModalProps) {
               >
                 Cancel
               </button>
-              
+
               {step < 3 ? (
                 <button
                   type="button"
@@ -635,20 +863,32 @@ export function ListFoodModal({ isOpen, onClose }: ListFoodModalProps) {
                   Continue
                 </button>
               ) : (
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Package className="animate-spin w-5 h-5 mr-2" />
-                      Submitting...
-                    </>
+                <>
+                  {showPreview ? (
+                    <button
+                      type="button"
+                      onClick={handleSubmit}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Package className="animate-spin w-5 h-5 mr-2" />
+                          Submitting...
+                        </>
+                      ) : (
+                        "List Food"
+                      )}
+                    </button>
                   ) : (
-                    'List Food'
+                    <button
+                      type="button"
+                      onClick={handlePreview}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                    >
+                      Preview Listing
+                    </button>
                   )}
-                </button>
+                </>
               )}
             </div>
           </div>
