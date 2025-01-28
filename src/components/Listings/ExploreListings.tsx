@@ -233,7 +233,7 @@ import type {
   ExpirationFilter,
 } from "../../types/listing";
 import { supabase } from "../../lib/supabase";
-import { useLocation } from "../../context/LocationContext"; // Import the context
+import { LocationProvider, useLocation } from "../../context/LocationContext"; // Import the context
 
 const ITEMS_PER_PAGE = 6;
 
@@ -254,7 +254,7 @@ function calculateDistance(
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c; // Distance in km
+  return Math.floor(R * c); // Distance in km
 }
 
 export function ExploreListings() {
@@ -290,6 +290,7 @@ export function ExploreListings() {
 
           // Map fetched data to match frontend expectations
           const processedData = data.map((item) => {
+            console.log("item: ", item);
             const expiresIn = item.expires_at
               ? `Expires in ${Math.max(
                   0,
@@ -300,15 +301,29 @@ export function ExploreListings() {
                 )} hours`
               : "Expires in 999 hours";
 
-            return {
-              ...item,
-              distance: item.distance || "999 miles away",
-              expiresIn,
-              image:
-                item.images?.[0] ||
-                "https://via.placeholder.com/300?text=No+Image+Available",
-              category: item.category || "unknown",
-            };
+              console.log("location,lat: ", location.latitude);
+              console.log("location,long: ", location.longitude);
+              console.log("item.pickup_latitude: ", item.pickup_latitude);
+              console.log("item.pickup_longitude: ", item.pickup_longitude);
+              
+              
+              const distanceValue = calculateDistance(
+                location.latitude!,
+                location.longitude!,
+                item.pickup_latitude,
+                item.pickup_longitude
+              );
+              const it = {
+                ...item,
+                distance: distanceValue + " miles away" || "999 miles away",
+                expiresIn,
+                image:
+                  item.images?.[0] ||
+                  "https://via.placeholder.com/300?text=No+Image+Available",
+                category: item.category || "unknown",
+              };
+              console.log("it: ", it);
+            return it;
           });
 
           setListings(processedData);
@@ -325,122 +340,6 @@ export function ExploreListings() {
 
     fetchListings();
   }, []);
-
-  // Filter listings based on search and filters
-  // useEffect(() => {
-  //   if (!location.latitude || !location.longitude) return;
-
-  //   let filtered = [...listings];
-
-  //   // Search Filter
-  //   if (searchQuery) {
-  //     const query = searchQuery.toLowerCase();
-  //     filtered = filtered.filter(
-  //       (listing) =>
-  //         listing.title?.toLowerCase().includes(query) ||
-  //         listing.category?.toLowerCase().includes(query)
-  //     );
-  //   }
-
-  //   // Food Type Filter
-  //   if (foodType !== "all") {
-  //     filtered = filtered.filter(
-  //       (listing) => listing.category?.toLowerCase() === foodType
-  //     );
-  //   }
-
-  //   // // Distance Filter
-  //   // filtered = filtered.filter((listing) => {
-  //   //   if (!listing.pickup_latitude || !listing.pickup_longitude) return false;
-  //   //   const distanceValue = calculateDistance(
-  //   //     location.latitude,
-  //   //     location.longitude,
-  //   //     listing.pickup_latitude,
-  //   //     listing.pickup_longitude
-  //   //   );
-  //   //   return distanceValue <= parseFloat(distance);
-  //   // });
-
-  //   // Expiration Filter
-  //   filtered = filtered.filter((listing) => {
-  //     const expiresAt = new Date(listing.expires_at).getTime();
-  //     return expiresAt > Date.now();
-  //   });
-
-  //   setFilteredListings(filtered);
-  //   setDisplayedListings(filtered.slice(0, ITEMS_PER_PAGE));
-  //   setPage(1);
-  //   setHasMore(filtered.length > ITEMS_PER_PAGE);
-  // }, [listings, searchQuery, foodType, distance, expiration, location]);
-  //22222222
-  // useEffect(() => {
-  //   //if (!location.latitude || !location.longitude) return;
-  //   if (!location?.latitude || !location?.longitude) {
-  //     console.log("Location not available");
-  //     return;
-  //   }
-  //   let filtered = [...listings];
-
-  //   // Search Filter
-  //   if (searchQuery) {
-  //     const query = searchQuery.toLowerCase();
-  //     filtered = filtered.filter(
-  //       (listing) =>
-  //         listing.title?.toLowerCase().includes(query) ||
-  //         listing.category?.toLowerCase().includes(query)
-  //     );
-  //   }
-
-  //   // Food Type Filter
-  //   if (foodType !== "all") {
-  //     filtered = filtered.filter(
-  //       (listing) => listing.category?.toLowerCase() === foodType
-  //     );
-  //   }
-
-  //   // Distance Filter - Adjust to include all listings
-  //   filtered = filtered.filter((listing) => {
-  //     if (
-  //       !listing.pickupLocation?.latitude ||
-  //       !listing.pickupLocation?.longitude
-  //     )
-  //       return true;
-  //     const distanceValue = calculateDistance(
-  //       location.latitude!,
-  //       location.longitude!,
-  //       listing.pickupLocation.latitude || 0,
-  //       listing.pickupLocation.longitude || 0
-  //     );
-  //     // return distanceValue <= parseFloat(distance);
-  //     return isNaN(distanceValue) || distanceValue <= parseFloat(distance);
-  //   });
-
-  //   // Expiration Filter - Adjust to include all listings
-  //   filtered = filtered.filter((listing) => {
-  //     const expiresAt = new Date(listing.expires_at).getTime();
-  //     return isNaN(expiresAt) || expiresAt > Date.now();
-  //   });
-
-  //   setFilteredListings(filtered);
-
-  //   setDisplayedListings(filtered.slice(0, ITEMS_PER_PAGE));
-  //   setPage(1);
-  //   setHasMore(filtered.length > ITEMS_PER_PAGE);
-  // }, [listings, searchQuery, foodType, distance, expiration, location]);
-
-  // // Load more items
-  // const loadMore = useCallback(() => {
-  //   const nextPage = page + 1;
-  //   const start = (nextPage - 1) * ITEMS_PER_PAGE;
-  //   const end = start + ITEMS_PER_PAGE;
-  //   const newDisplayedListings = filteredListings.slice(0, end);
-
-  //   setDisplayedListings(newDisplayedListings);
-  //   setPage(nextPage);
-  //   setHasMore(end < filteredListings.length);
-  // }, [page, filteredListings]);
-
-  //3333333
 
   useEffect(() => {
     if (!location?.latitude || !location?.longitude) {

@@ -10,19 +10,20 @@ export function useListings() {
 
   const foodItem = {
     title: listing.title,
+    category_id: listing.category,
     description: listing.description,
-    quantity:listing.quantity,
+    quantity: listing.quantity,
     pickup_address: listing.pickupLocation.address,
     pickup_latitude: listing.pickupLocation.latitude,
     pickup_longitude: listing.pickupLocation.longitude,
-    expires_at: "2025-01-27 15:00:00+00",
-    images:listing.images,
-    allergens:listing.allergens,
+    expires_at: listing.expires_at,
+    images: listing.images,
+    allergens: listing.allergens,
     storage_type: listing.storageType,
-    condition:listing.condition,
+    condition: listing.condition,
     contact_name: listing.contactInfo?.name,
     contact_phone: listing.contactInfo?.phone,
-    notes:listing.notes,
+    notes: listing.notes,
   };
   
   console.log("before pushing list", listing);

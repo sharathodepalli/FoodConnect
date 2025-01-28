@@ -13,6 +13,8 @@ declare global {
 
 export function LocationSelector() {
   const { location, setLocation } = useLocation(); // Access context
+  console.log("fetched lat: ", location.latitude);
+  
   const [inputValue, setInputValue] = useState(""); // Local input state
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [dropdownVisible, setDropdownVisible] = useState(false);
@@ -60,7 +62,14 @@ export function LocationSelector() {
                 results[0]
               ) {
                 const userLocation = results[0].formatted_address;
-                setLocation({ latitude, longitude, address: userLocation });
+                location.latitude = latitude;
+                location.longitude = longitude;
+                location.address = userLocation;
+                // setLocation({ latitude, longitude, address: userLocation });
+                console.log("Fetched user location: ", userLocation);
+                console.log("Fetched user coordinates: ", latitude, longitude);
+                
+                
               } else {
                 console.error("Geocoding failed: ", status);
               }
@@ -144,7 +153,7 @@ export function LocationSelector() {
         <MapPin className="w-5 h-5 text-green-600 absolute left-3" />
         <input
           type="text"
-          value={inputValue}
+          value={location.address || inputValue}
           onChange={handleInputChange}
           onClick={() => {
             toggleDropdown();

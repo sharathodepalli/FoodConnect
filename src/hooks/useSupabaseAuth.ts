@@ -9,7 +9,12 @@ interface SignUpData {
   password: string;
   fullName: string;
   role: UserRole;
+  phone?: string;
+  address?: string;
   businessName?: string;
+  businessType?: string;
+  storageCapacity?: string;
+  operatingHours?: string;
 }
 
 export function useSupabaseAuth() {
@@ -23,7 +28,7 @@ export function useSupabaseAuth() {
         email,
         password,
       });
-
+      console.log('Sign in data:', data); // Log sign in data
       if (error) {
         console.error('Error signing in:', error.message);
         return { success: false, error: error.message };
@@ -31,19 +36,18 @@ export function useSupabaseAuth() {
 
       // Successfully signed in
       console.log('Signed in user:', data.user);
-
       // Fetch user profile
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', data.user.id)
         .single();
-
+      console.log('Fetched profile1:', profile);
       if (profileError) {
         console.error('Error fetching profile:', profileError.message);
         return { success: false, error: profileError.message };
       }
-
+      console.log('Fetched profile:', profile);
       // Dispatch user data
       dispatch({
         type: "SET_USER",
@@ -51,7 +55,6 @@ export function useSupabaseAuth() {
           id: data.user.id,
           name: profile.full_name,
           role: profile.role,
-          avatar: profile.avatar_url,
           notifications: 0,
         },
       });
@@ -63,7 +66,18 @@ export function useSupabaseAuth() {
     }
   };
 
-  const signUp = useCallback(async ({ email, password, fullName, role, businessName }: SignUpData) => {
+  const signUp = useCallback(async ({
+    email, 
+    password,
+    fullName,
+    role,
+    phone,
+    address,
+    businessName,
+    businessType,
+    storageCapacity,
+    operatingHours
+  }: SignUpData) => {
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -72,15 +86,40 @@ export function useSupabaseAuth() {
           data: {
             full_name: fullName,
             role,
+            phone,
+            address,
             business_name: businessName,
-          },
-        },
+            business_type: businessType, 
+            storage_capacity: storageCapacity,
+            operating_hours: operatingHours,
+            total_donations: 0,
+            rating: 0
+          }
+        }
       });
 
       if (error) throw error;
 
       // Check if user data is available
       if (data.user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: data.user.id,
+            email: email,
+            full_name: fullName,
+            role: role,
+            phone: phone || null,
+            address: address || null,
+            business_name: businessName || null,
+            business_type: businessType || null,
+            storage_capacity: storageCapacity || null,
+            operating_hours: operatingHours || null,
+            total_donations: 0,
+            rating: 0
+          });
+
+        if (profileError) throw profileError;
         // Dispatch user data or handle post-signup logic
         dispatch({
           type: "SET_USER",
@@ -118,7 +157,35 @@ export function useSupabaseAuth() {
   }, [dispatch, addNotification]);
 
   const signOut = useCallback(async () => {
-    // Sign out logic...
+    try {
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) throw error;
+
+      // Clear user from context
+      dispatch({ 
+        type: "CLEAR_USER" 
+      });
+
+      addNotification({
+        type: 'success',
+        title: 'Signed out',
+        message: 'You have been signed out successfully'
+      });
+
+      return { success: true };
+
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to sign out';
+      
+      addNotification({
+        type: 'error',
+        title: 'Sign out failed',
+        message
+      });
+
+      return { success: false, error: message };
+    }
   }, [dispatch, addNotification]);
 
   return {
