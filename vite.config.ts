@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
-  base: 'FoodConnect', // Replace <your-repo> with your repository name
+  base: '/FoodConnect/', // Ensure this starts and ends with a '/'
   plugins: [react()],
   optimizeDeps: {
     exclude: ['lucide-react'],
