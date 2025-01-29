@@ -1,7 +1,11 @@
-import React from 'react';
-import { Filter } from 'lucide-react';
-import { SearchBar } from './SearchBar';
-import type { FoodCategory, DistanceFilter, ExpirationFilter } from '../../types/listing';
+import React from "react";
+import { Filter } from "lucide-react";
+import { SearchBar } from "./SearchBar";
+import type {
+  FoodCategory,
+  DistanceFilter,
+  ExpirationFilter,
+} from "../../types/listing";
 
 interface FilterBarProps {
   searchQuery: string;
@@ -65,7 +69,9 @@ export function FilterBar({
           {/* Expiration Filter */}
           <select
             value={expiration}
-            onChange={(e) => onExpirationChange(e.target.value as ExpirationFilter)}
+            onChange={(e) =>
+              onExpirationChange(e.target.value as ExpirationFilter)
+            }
             className="px-4 py-2 bg-white border border-gray-300 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
           >
             <option value="2">Expires in 2 hours</option>

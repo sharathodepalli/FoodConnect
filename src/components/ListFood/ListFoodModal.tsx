@@ -117,22 +117,6 @@ export function ListFoodModal({ isOpen, onClose }: ListFoodModalProps) {
     }
   }, [isOpen]);
 
-  // const fetchAddressFromCoordinates = async (lat: number, lng: number) => {
-  //   try {
-  //     const response = await fetch(
-  //       `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
-  //     );
-  //     const data = await response.json();
-  //     if (data && data.display_name) {
-  //       setFormData((prev) => ({ ...prev, address: data.display_name }));
-  //     } else {
-  //       console.error("No address found for given coordinates.");
-  //     }
-  //   } catch (error) {
-  //     console.error("Error fetching address:", error);
-  //   }
-  // };
-
   const fetchAddressFromCoordinates = async (lat: number, lng: number) => {
     try {
       const response = await fetch(
